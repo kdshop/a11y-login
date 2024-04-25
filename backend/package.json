@@ -15,8 +15,10 @@
     "express": "latest"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/express": "latest",
     "@types/node": "latest",
+    "bcrypt": "latest",
     "nodemon": "latest",
     "postgres": "latest",
     "ts-node": "latest",
