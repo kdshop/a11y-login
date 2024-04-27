@@ -1,6 +1,9 @@
 import React, { FC } from "react";
 import { Outlet } from "react-router-dom";
 import { NavigationList, User } from "@/components";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { A11yAiInput } from "@components/a11y-ai-input/A11yAiInput";
 
 export const Layout: FC = () => {
   return (
@@ -10,8 +13,19 @@ export const Layout: FC = () => {
         <User />
       </header>
       <section className="grid place-content-center h-full bg-gray-200">
+        <A11yAiInput />
         <Outlet />
       </section>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover={false}
+        theme="light"
+        transition:Bounce
+      />
     </>
   );
 };

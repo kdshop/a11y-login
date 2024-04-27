@@ -17,7 +17,13 @@
     "clsx": "latest",
     "framer-motion": "latest",
     "tailwind-merge": "latest",
-    "react-router-dom": "latest"
+    "react-router-dom": "latest",
+    "react-toastify": "latest",
+    "@tensorflow/tfjs": "latest",
+    "@tensorflow/tfjs-backend-cpu": "latest",
+    "@tensorflow/tfjs-backend-webgl": "latest",
+    "@tensorflow-models/coco-ssd": "latest",
+    "vite-plugin-require": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

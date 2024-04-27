@@ -12,13 +12,15 @@
   "author": "Konrad Albrecht",
   "license": "ISC",
   "dependencies": {
+    "bcrypt-nodejs": "latest",
+    "cors": "latest",
     "express": "latest"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcrypt-nodejs": "latest",
+    "@types/cors": "^2.8.17",
     "@types/express": "latest",
     "@types/node": "latest",
-    "bcrypt": "latest",
     "nodemon": "latest",
     "postgres": "latest",
     "ts-node": "latest",

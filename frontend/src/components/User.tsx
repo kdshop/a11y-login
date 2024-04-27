@@ -1,6 +1,7 @@
 import React, { FC, useContext } from "react";
 import { AuthContext } from "@/utils/ThemeContext";
 import { IconUser } from "@tabler/icons-react";
+import { toast } from "react-toastify";
 
 export const User: FC = () => {
   const { authState, setAuthState } = useContext(AuthContext);
@@ -10,7 +11,11 @@ export const User: FC = () => {
       {authState && (
         <>
           <IconUser size="28" className="mr-2 p-1 border rounded-full" />
-          <button onClick={() => setAuthState(null)}>Logout</button>
+          <button
+            onClick={() => toast.info("See you soon!") && setAuthState(null)}
+          >
+            Logout
+          </button>
         </>
       )}
     </div>
