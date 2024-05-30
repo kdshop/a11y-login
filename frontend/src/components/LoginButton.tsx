@@ -2,7 +2,7 @@ import React, { FC } from "react";
 
 export const LoginButton: FC = ({ text = "Log in" }) => (
   <button
-    className="relative group/btn block w-full h-10 border rounded-lg mt-6"
+    className="relative group/btn block w-full h-10 border rounded-lg mt-6 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded"
     type="submit"
   >
     {text}

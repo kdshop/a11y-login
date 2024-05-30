@@ -1,0 +1,94 @@
+.a11yai-widget {
+    position: absolute;
+    display: flex;
+    bottom: 1rem;
+    left: 1.5rem;
+    z-index: 999999999999;
+}
+
+.preview-wrapper {
+    position: absolute;
+    background: white;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+    z-index: -1;
+    width: 0;
+    height: 12rem;
+    top: -11rem;
+    left: 0;
+}
+
+.preview-playing {
+    width: 18rem;
+}
+
+.video-element {
+    position: relative;
+    width: 16rem;
+    left: 1rem;
+    top: 1rem;
+}
+
+.buttons-wrapper {
+    display: grid;
+    padding: 1rem;
+    position: relative;
+    background: white;
+    width: 15rem;
+    max-width: 15rem;
+    max-height: 30rem;
+    border-radius: 1rem;
+    border: 3px solid rgba(55, 55, 55, 0.15);
+    place-content: baseline;
+    place-items: center;
+    gap: 1rem;
+    grid-template-columns: 1fr 1fr;
+}
+
+.phrase-buttons {
+    display: grid;
+    max-height: 100%;
+    grid-auto-flow: column;
+    grid-gap: 0.2rem;
+    background-color: white;
+    padding: 1rem;
+    left: 0;
+    grid-template-rows: repeat(4, 1fr);
+}
+
+.drag-icon {
+    font-size: 2rem;
+    font-style: normal;
+    cursor: grab;
+    user-select: none;
+}
+
+.control-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 0.5rem;
+    grid-column: span 2;
+    place-items: center;
+}
+
+.button-label {
+    display: grid;
+    place-content: center;
+}
+
+.button {
+    width: 90px;
+    height: 90px;
+}
+
+.file-input, .image {
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+    left: 0;
+}
+
+.file-input:focus + .file-input-label {
+    background-color: rgb(156 163 175);
+}

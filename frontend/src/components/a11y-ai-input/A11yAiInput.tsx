@@ -1,109 +1,249 @@
-import React, { FC, Suspense, useEffect, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import "@tensorflow/tfjs-backend-cpu";
 import "@tensorflow/tfjs-backend-webgl";
 import * as CocoSSD from "@tensorflow-models/coco-ssd";
-import { ObjectDetection } from "@tensorflow-models/coco-ssd";
+import { DetectedObject, ObjectDetection } from "@tensorflow-models/coco-ssd";
+import classNames from "classnames";
+import Papa from "papaparse";
+import Draggable from "react-draggable";
+
+import "./A11yAiInput.css";
 
 export const A11yAiInput: FC = () => {
+  const [detectedObjects, setDetectedObject] = useState<Set<string>>(new Set());
+  const [cameraDetectionEnabled, setCameraDetectionEnabled] = useState(false);
   const [model, setModel] = useState<ObjectDetection>(null);
-  const [detection, setDetection] = useState<ObjectDetection>(null);
-  const htmlVideoElement = useRef<HTMLVideoElement>();
+  const [lastActiveInput, setLastActiveInput] =
+    useState<HTMLInputElement | null>(null);
+
   useEffect(() => {
-    async function loadModel() {
-      // const img = document.getElementById("img");
+    (async () => setModel(await CocoSSD.load()))();
 
-      // Load the model.
-      const model = await CocoSSD.load();
-
-      // Classify the image.
-      // const predictions = await model.detect(img);
-
-      setModel(model);
-    }
-
-    loadModel();
+    return () => setModel(null);
   }, []);
 
-  function loadCamera(element: HTMLVideoElement) {
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then(function (stream) {
-        console.log(stream, { ...htmlVideoElement.current });
-        element.srcObject = stream;
-        element.addEventListener("loadeddata", (asd) => {
-          element.play();
-          console.log(asd);
-          console.log("loaded");
-        });
-      });
-  }
-  // return model ? (
-  //   <div className="absolute bottom-0 w-60 h-96 rounded-xl bg-white z-20">
-  //     "Model loaded"
-  //     <video
-  //       ref={(elelement) => console.log(elelement?.srcObject)}
-  //       id="video"
-  //       autoPlay
-  //       muted
-  //       width="640"
-  //       height="480"
-  //     ></video>
-  //   </div>
-  // ) : (
-  //   <p>Loading...</p>
-  // );
+  useEffect(() => {
+    const addIfInput = (el: Element) => {
+      if (
+        el.nodeName === "INPUT" &&
+        ["text", "textarea", "password"].includes((el as HTMLInputElement).type)
+      ) {
+        setLastActiveInput(el as HTMLInputElement);
+      }
+    };
+    const listener = () => {
+      addIfInput(document.activeElement);
+    };
 
-  function streamCamVideo() {
-    var constraints = { audio: true, video: { width: 1280, height: 720 } };
+    window.addEventListener("click", listener);
+    window.addEventListener("keydown", listener);
+
+    return () => {
+      window.removeEventListener("click", listener);
+      window.removeEventListener("keydown", listener);
+    };
+  }, []);
+
+  useEffect(() => {
+    let intervalDestructor: number;
+
+    if (cameraDetectionEnabled && model) {
+      intervalDestructor = window.setInterval(() => {
+        (model as typeof ObjectDetection)
+          .detect(document.querySelector("video"))
+          .then((detectObject) =>
+            detectObject.map<DetectedObject>((detection) => {
+              console.log(detection, 1);
+              setDetectedObject((set) => new Set(set.add(detection.class)));
+            }),
+          );
+      }, 150);
+    }
+
+    return () => window.clearInterval(intervalDestructor);
+  }, [cameraDetectionEnabled, model]);
+
+  const setInputValue = useCallback(
+    (value: string) => {
+      if (lastActiveInput && "value" in lastActiveInput) {
+        lastActiveInput.value = lastActiveInput?.value + value;
+      }
+    },
+    [lastActiveInput],
+  );
+
+  const streamCamVideo = useCallback(() => {
+    const constraints = { audio: true, video: { width: 1280, height: 720 } };
+    const video = document.querySelector("video");
+    if (cameraDetectionEnabled) {
+      setCameraDetectionEnabled(false);
+      video.pause();
+
+      return;
+    }
+
     navigator.mediaDevices
       .getUserMedia(constraints)
       .then(function (mediaStream) {
-        var video = document.querySelector("video");
-
         video.srcObject = mediaStream;
-        video.onloadedmetadata = function (e) {
-          video.play();
+        video.onloadedmetadata = function () {
+          video.play().then(() => setCameraDetectionEnabled(true));
         };
       })
       .catch(function (err) {
         console.log(err.name + ": " + err.message);
-      }); // always check for errors at the end.
-  }
+      });
+  }, [cameraDetectionEnabled]);
 
-  const detectObject = () => {
-    console.log(
-      model
-        .detect(document.querySelector("video"))
-        .then((detectObject) =>
-          setDetection(
-            detectObject.map(
-              ({ class: clss, score }) =>
-                JSON.stringify({ clss, score }) + "\n",
-            ),
+  const onFileSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target?.files[0];
+    const fileInput = document.getElementById(
+      "a11yaiFileInputElement",
+    ) as HTMLInputElement;
+
+    Papa.parse(selectedFile, {
+      complete(results) {
+        setDetectedObject((set) => {
+          const newSet = new Set(set);
+
+          results.data
+            .flat(2)
+            .filter(Boolean)
+            .forEach((value) => newSet.add(value));
+
+          return newSet;
+        });
+      },
+    });
+
+    fileInput.value = "";
+  };
+
+  const onImageSelected = (event) => {
+    const selectedFile = event.target.files[0];
+    const reader = new FileReader();
+    const imgtag = document.getElementById(
+      "a11yaiImageElement",
+    ) as HTMLImageElement;
+    const imageInput = document.getElementById(
+      "a11yaiImageInputElement",
+    ) as HTMLInputElement;
+
+    imgtag.title = selectedFile.name;
+    reader.onload = (event) => {
+      imgtag.src = String(event.target.result);
+      setDetectedObject(
+        (set) =>
+          new Set(
+            set.add(String(event.target.result).split(",")[1].slice(0, 10)),
           ),
-        ),
-    );
+      );
+    };
+    imgtag.onload = () => {
+      (model as typeof ObjectDetection).detect(imgtag).then((detectObject) =>
+        detectObject.map<DetectedObject>((detection) => {
+          console.log(detection, 1);
+          setDetectedObject((set) => new Set(set.add(detection.class)));
+        }),
+      );
+
+      imageInput.value = "";
+    };
+
+    reader.readAsDataURL(selectedFile);
   };
 
   return (
-    <div className="absolute bottom-0 w-60 h-96 rounded-xl bg-white z-20">
-      <video autoPlay muted id="videoElement" controls></video>
+    <Draggable handle=".drag-icon">
+      <article
+        className={classNames("a11yai-widget", {
+          "a11yai-widget--loading": !model,
+        })}
+      >
+        <section
+          className={classNames("preview-wrapper", {
+            "preview-playing": cameraDetectionEnabled,
+          })}
+        >
+          <video
+            id="a11yaiVideoElement"
+            className="video-element"
+            autoPlay
+            muted
+          />
+        </section>
+        <section className="buttons-wrapper">
+          <i className="drag-icon" role="drag-icon">
+            ❖
+          </i>
+          <h2>A11yAiInput</h2>
+          <section className="control-buttons">
+            <button
+              className="button bg-gray-300 focus:bg-gray-400 text-gray-800 font-bold p-1 text-center rounded"
+              onClick={() => setDetectedObject(new Set())}
+            >
+              Clear phrases
+            </button>
+            <button
+              className="button bg-gray-300 focus:bg-gray-400 text-gray-800 font-bold p-1 text-center rounded"
+              onClick={streamCamVideo}
+            >
+              {cameraDetectionEnabled ? "Stop" : "Start"} camera detection
+            </button>
 
-      <br />
-      <button
-        className="bg-white rounded-xl border-2 p-2 border-orange-500"
-        onClick={streamCamVideo}
-      >
-        Start camera
-      </button>
-      <br />
-      <button
-        className="bg-white rounded-xl border-2 p-2 border-violet-500"
-        onClick={detectObject}
-      >
-        detect
-      </button>
-      <pre>{detection}</pre>
-    </div>
+            <input
+              id="a11yaiImageInputElement"
+              className="file-input"
+              type="file"
+              onChange={(event) => onImageSelected(event)}
+            />
+            <label
+              role="button"
+              className="button button-label bg-gray-300 focus:bg-gray-400 text-gray-800 font-bold p-1 text-center rounded file-input-label"
+              htmlFor="a11yaiImageInputElement"
+            >
+              Load an image
+            </label>
+
+            <input
+              id="a11yaiFileInputElement"
+              className="file-input"
+              type="file"
+              onChange={(event) => onFileSelected(event)}
+            />
+            <label
+              role="button"
+              className="button button-label bg-gray-300 focus:bg-gray-400 text-gray-800 font-bold p-1 text-center rounded file-input-label"
+              htmlFor="a11yaiFileInputElement"
+            >
+              Load a CSV
+            </label>
+
+            <img
+              className="image"
+              alt="Place for render loaded images for AI model"
+              id="a11yaiImageElement"
+            />
+          </section>
+        </section>
+        <section className="phrase-buttons">
+          {[...detectedObjects].map((objectName, index) => (
+            <button
+              key={index}
+              className="bg-blue-500 focus:bg-blue-700 text-white font-bold py-1 px-1 border border-blue-700 rounded"
+              onClick={() => setInputValue(objectName)}
+            >
+              {objectName}
+            </button>
+          ))}
+        </section>
+      </article>
+    </Draggable>
   );
 };
