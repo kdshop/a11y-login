@@ -21,6 +21,17 @@ export const A11yAiInput: FC = () => {
   const [model, setModel] = useState<ObjectDetection>(null);
   const [lastActiveInput, setLastActiveInput] =
     useState<HTMLInputElement | null>(null);
+  const addDetectedObjects = useCallback(
+    (detectedObjects: string[]) =>
+      setDetectedObject((oldSet) => {
+        detectedObjects.forEach((object) =>
+          oldSet.add(object.replace(new RegExp(" ", "g"), "_")),
+        );
+
+        return new Set(oldSet);
+      }),
+    [setDetectedObject],
+  );
 
   useEffect(() => {
     (async () => setModel(await CocoSSD.load()))();
@@ -58,10 +69,9 @@ export const A11yAiInput: FC = () => {
         (model as typeof ObjectDetection)
           .detect(document.querySelector("video"))
           .then((detectObject) =>
-            detectObject.map<DetectedObject>((detection) => {
-              console.log(detection, 1);
-              setDetectedObject((set) => new Set(set.add(detection.class)));
-            }),
+            addDetectedObjects(
+              detectObject.map<DetectedObject>((detection) => detection.class),
+            ),
           );
       }, 150);
     }
@@ -109,16 +119,7 @@ export const A11yAiInput: FC = () => {
 
     Papa.parse(selectedFile, {
       complete(results) {
-        setDetectedObject((set) => {
-          const newSet = new Set(set);
-
-          results.data
-            .flat(2)
-            .filter(Boolean)
-            .forEach((value) => newSet.add(value));
-
-          return newSet;
-        });
+        addDetectedObjects(results.data.flat(2).filter(Boolean));
       },
     });
 
@@ -138,20 +139,18 @@ export const A11yAiInput: FC = () => {
     imgtag.title = selectedFile.name;
     reader.onload = (event) => {
       imgtag.src = String(event.target.result);
-      setDetectedObject(
-        (set) =>
-          new Set(
-            set.add(String(event.target.result).split(",")[1].slice(0, 10)),
-          ),
-      );
+      addDetectedObjects([
+        String(event.target.result).split(",")[1].slice(0, 10),
+      ]);
     };
     imgtag.onload = () => {
-      (model as typeof ObjectDetection).detect(imgtag).then((detectObject) =>
-        detectObject.map<DetectedObject>((detection) => {
-          console.log(detection, 1);
-          setDetectedObject((set) => new Set(set.add(detection.class)));
-        }),
-      );
+      (model as typeof ObjectDetection)
+        .detect(imgtag)
+        .then((detectObject) =>
+          addDetectedObjects(
+            detectObject.map<DetectedObject>((detection) => detection.class),
+          ),
+        );
 
       imageInput.value = "";
     };
@@ -232,17 +231,19 @@ export const A11yAiInput: FC = () => {
             />
           </section>
         </section>
-        <section className="phrase-buttons">
-          {[...detectedObjects].map((objectName, index) => (
-            <button
-              key={index}
-              className="bg-blue-500 focus:bg-blue-700 text-white font-bold py-1 px-1 border border-blue-700 rounded"
-              onClick={() => setInputValue(objectName)}
-            >
-              {objectName}
-            </button>
-          ))}
-        </section>
+        {Boolean([...detectedObjects].length) && (
+          <section className="phrase-buttons">
+            {[...detectedObjects].map((objectName, index) => (
+              <button
+                key={index}
+                className="bg-blue-500 focus:bg-blue-700 text-white font-bold py-1 px-1 border border-blue-700 rounded"
+                onClick={() => setInputValue(objectName)}
+              >
+                {objectName}
+              </button>
+            ))}
+          </section>
+        )}
       </article>
     </Draggable>
   );
